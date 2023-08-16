@@ -11,13 +11,13 @@ namespace ESPWifiConfig
 {
 
 // Forward declaration to avoid circular dependency
-//  class ConfigurableBase;
+class ConfigurableBase;
 
 class WebServer
 {
  private:
   AsyncWebServer server;
-  //   std::vector<ConfigurableBase*> configurables;
+  std::vector<ConfigurableBase*> configurables;
   String session_id;
 
   // Private constructor
@@ -33,7 +33,7 @@ class WebServer
 
   static WebServer& getInstance();
 
-  //   void registerConfigurable(ConfigurableBase* configurable);
+  void registerConfigurable(ConfigurableBase* configurable);
 
   void start();
   void stop();
