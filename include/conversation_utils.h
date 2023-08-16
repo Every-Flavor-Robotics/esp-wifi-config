@@ -15,9 +15,9 @@ struct JsonConverter<float>
 {
   static float convert(const JSONVar& obj)
   {
-    if (obj.hasOwnProperty("value") && JSON.typeof(obj["value"]) == "number")
+    if (JSON.typeof(obj["value"]) == "number")
     {
-      return static_cast<float>((double)obj["value"]);
+      return static_cast<float>((double)obj);
     }
     throw std::runtime_error("Invalid JSON format or type for float.");
   }
@@ -43,9 +43,9 @@ struct JsonConverter<int>
 {
   static int convert(const JSONVar& obj)
   {
-    if (obj.hasOwnProperty("value") && JSON.typeof(obj["value"]) == "number")
+    if (JSON.typeof(obj) == "number")
     {
-      return static_cast<int>((double)obj["value"]);
+      return static_cast<int>(obj);
     }
     throw std::runtime_error("Invalid JSON format or type for int.");
   }

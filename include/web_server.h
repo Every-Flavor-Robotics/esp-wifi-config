@@ -17,7 +17,6 @@ class WebServer
 {
  private:
   AsyncWebServer server;
-  std::vector<ConfigurableBase*> configurables;
   String session_id;
 
   // Private constructor
@@ -33,7 +32,7 @@ class WebServer
 
   static WebServer& getInstance();
 
-  void registerConfigurable(ConfigurableBase* configurable);
+  //   void register_configurable(ConfigurableBase* configurable);
 
   void start();
   void stop();

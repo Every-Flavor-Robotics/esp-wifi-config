@@ -19,7 +19,10 @@ class ConfigurableBase
   virtual void handle_get(AsyncWebServerRequest* request) = 0;
   virtual void handle_post(AsyncWebServerRequest* request, uint8_t* data,
                            size_t len) = 0;
+  virtual String get_endpoint() const = 0;
 };
+
+extern std::vector<ConfigurableBase*> global_configurables;
 
 template <typename T>
 class Configurable : public ConfigurableBase
@@ -38,8 +41,10 @@ class Configurable : public ConfigurableBase
   Configurable(T& value, const String& endpoint_path, const String& desc = "")
       : value_ptr(&value), endpoint(endpoint_path), description(desc)
   {
-    WebServer::getInstance().register_configurable(this);
+    global_configurables.push_back(this);
   }
+
+  String get_endpoint() const { return endpoint; }
 
   T get_value() const { return *value_ptr; }
   void set_value(const T& val) { *value_ptr = val; }
@@ -57,14 +62,20 @@ class Configurable : public ConfigurableBase
     }
   }
 
-  void handlePost(AsyncWebServerRequest* request, uint8_t* data,
-                  size_t len) override
+  void handle_post(AsyncWebServerRequest* request, uint8_t* data,
+                   size_t len) override
   {
+    Serial.println("Handling POST request");
     String payload = String((char*)data);
+    Serial.print("Payload: ");
+    Serial.println(payload);
     JSONVar json_object = JSON.parse(payload);
+    Serial.print("JSON object: ");
+    Serial.println(json_object["value"]);
+
     try
     {
-      T received_value = JsonConverter<T>::convert(json_object);
+      T received_value = JsonConverter<T>::convert(json_object["value"]);
       *value_ptr = received_value;
       request->send(200, "text/plain", "Success.");
       if (post_callback) post_callback(received_value);
