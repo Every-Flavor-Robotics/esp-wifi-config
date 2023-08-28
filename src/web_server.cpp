@@ -2,6 +2,7 @@
 #include "web_server.h"
 
 #include "configurable.h"
+#include "readable.h"
 
 namespace ESPWifiConfig
 {
@@ -121,6 +122,7 @@ void WebServer::start()
 
   setup_session_endpoints();
 
+  // Setup all the GET and POST endpoints for the configurables
   for (auto& conf : global_configurables)
   {
     Serial.print("Registering configurable: ");
@@ -137,6 +139,17 @@ void WebServer::start()
         [conf](AsyncWebServerRequest* request, uint8_t* data, size_t len,
                size_t index, size_t total)
         { conf->handle_post(request, data, len); });
+  }
+
+  //   Setup all the GET endpoints for the readables
+  for (auto& read : global_readables)
+  {
+    Serial.print("Registering readable: ");
+    Serial.println(read->get_endpoint());
+    // Set up a GET endpoint for each readable
+    server.on(read->get_endpoint().c_str(), HTTP_GET,
+              [read](AsyncWebServerRequest* request)
+              { read->handle_get(request); });
   }
 
   // Finally, start the server
