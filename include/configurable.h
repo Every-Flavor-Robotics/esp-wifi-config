@@ -44,7 +44,7 @@ class Configurable : public ConfigurableBase
     global_configurables.push_back(this);
   }
 
-  String get_endpoint() const { return endpoint; }
+  String get_endpoint() const override { return endpoint; }
 
   T get_value() const { return *value_ptr; }
   void set_value(const T& val) { *value_ptr = val; }
