@@ -8,6 +8,7 @@ namespace ESPWifiConfig
 {
 
 std::vector<ConfigurableBase*> global_configurables;
+std::vector<ReadableBase*> global_readables;
 
 WebServer::WebServer(int port) : server(port) {}
 
