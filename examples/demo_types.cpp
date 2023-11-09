@@ -1,4 +1,5 @@
 #include "configurable.h"
+#include "readable.h"
 #include "web_server.h"
 
 // Define some global variables
@@ -11,6 +12,13 @@ ESPWifiConfig::Configurable<int> int_conf(int_val, "/int_val",
                                           "An integer value");
 ESPWifiConfig::Configurable<float> float_conf(float_val, "/float_val",
                                               "A float value");
+ESPWifiConfig::Readable<int> int_read(
+    []()
+    {
+      int_val++;
+      return int_val;
+    },
+    "/int_val_read", "An integer value");
 // ESPWifiConfig::Configurable<String> string_conf(string_val, "/string_val",
 //                                                 "A string value");
 
@@ -46,7 +54,8 @@ void setup()
   //   string_conf.set_post_callback(
   //       [](String received_val)
   //       {
-  //         Serial.print("POST request received for string_val with value: ");
+  //         Serial.print("POST request received for string_val with value:
+  //   ");
   //         Serial.println(received_val);
   //       });
 
