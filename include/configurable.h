@@ -7,28 +7,20 @@
 #include <conversion_utils.h>
 
 #include <functional>  // for std::function
+#include <memory>
 #include <string>
+#include <vector>
+
+#include "configurable_base.h"
+#include "configurable_manager.h"
 
 namespace ESPWifiConfig
 {
-
-class ConfigurableBase
-{
- public:
-  virtual ~ConfigurableBase() {}
-  virtual void handle_get(AsyncWebServerRequest* request) = 0;
-  virtual void handle_post(AsyncWebServerRequest* request, uint8_t* data,
-                           size_t len) = 0;
-  virtual String get_endpoint() const = 0;
-};
-
-extern std::vector<ConfigurableBase*> global_configurables;
-
 template <typename T>
 class Configurable : public ConfigurableBase
 {
  private:
-  T* value_ptr;
+  std::shared_ptr<T> value_ptr;
   String endpoint;
   String description;
 
@@ -39,9 +31,11 @@ class Configurable : public ConfigurableBase
 
  public:
   Configurable(T& value, const String& endpoint_path, const String& desc = "")
-      : value_ptr(&value), endpoint(endpoint_path), description(desc)
+      : value_ptr(std::make_shared<T>(value)),  // Construct a shared_ptr
+        endpoint(endpoint_path),
+        description(desc)
   {
-    global_configurables.push_back(this);
+    ConfigurableManager::get_instance().register_configurable(this);
   }
 
   String get_endpoint() const override { return endpoint; }

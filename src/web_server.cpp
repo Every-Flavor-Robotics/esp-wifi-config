@@ -1,14 +1,16 @@
 
 #include "web_server.h"
 
-#include "configurable.h"
-#include "readable.h"
+#include "configurable_base.h"
+#include "configurable_manager.h"
+
+// #include "readable.h"
 
 namespace ESPWifiConfig
 {
 
 std::vector<ConfigurableBase*> global_configurables;
-std::vector<ReadableBase*> global_readables;
+// std::vector<ReadableBase*> global_readables;
 
 WebServer::WebServer(int port) : server(port) {}
 
@@ -124,7 +126,8 @@ void WebServer::start()
   setup_session_endpoints();
 
   // Setup all the GET and POST endpoints for the configurables
-  for (auto& conf : global_configurables)
+  auto configurables = ConfigurableManager::get_instance().get_configurables();
+  for (auto& conf : configurables)
   {
     Serial.print("Registering configurable: ");
     Serial.println(conf->get_endpoint());
@@ -142,16 +145,16 @@ void WebServer::start()
         { conf->handle_post(request, data, len); });
   }
 
-  //   Setup all the GET endpoints for the readables
-  for (auto& read : global_readables)
-  {
-    Serial.print("Registering readable: ");
-    Serial.println(read->get_endpoint());
-    // Set up a GET endpoint for each readable
-    server.on(read->get_endpoint().c_str(), HTTP_GET,
-              [read](AsyncWebServerRequest* request)
-              { read->handle_get(request); });
-  }
+  //   //   Setup all the GET endpoints for the readables
+  //   for (auto& read : global_readables)
+  //   {
+  //     Serial.print("Registering readable: ");
+  //     Serial.println(read->get_endpoint());
+  //     // Set up a GET endpoint for each readable
+  //     server.on(read->get_endpoint().c_str(), HTTP_GET,
+  //               [read](AsyncWebServerRequest* request)
+  //               { read->handle_get(request); });
+  //   }
 
   // Finally, start the server
   server.begin();

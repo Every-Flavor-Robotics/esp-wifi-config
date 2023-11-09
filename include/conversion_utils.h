@@ -1,3 +1,6 @@
+#ifndef ESP_WIFI_CONFIG_JSON_CONVERTER_H
+#define ESP_WIFI_CONFIG_JSON_CONVERTER_H
+
 namespace ESPWifiConfig
 {
 
@@ -52,3 +55,5 @@ struct JsonConverter<int>
 };
 
 }  // namespace ESPWifiConfig
+
+#endif  // ESP_WIFI_CONFIG_JSON_CONVERTER_H
