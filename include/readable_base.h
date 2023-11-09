@@ -10,12 +10,11 @@
 namespace ESPWifiConfig
 {
 
-class ConfigurableBase
+class ReadableBase
 {
  public:
+  virtual ~ReadableBase() {}
   virtual void handle_get(AsyncWebServerRequest* request) = 0;
-  virtual void handle_post(AsyncWebServerRequest* request, uint8_t* data,
-                           size_t len) = 0;
   virtual String get_endpoint() const = 0;
 };
 

@@ -2,7 +2,8 @@
 #include "web_server.h"
 
 #include "configurable_base.h"
-#include "configurable_manager.h"
+#include "readable_base.h"
+#include "variable_manager.h"
 
 // #include "readable.h"
 
@@ -19,11 +20,6 @@ WebServer& WebServer::getInstance()
   static WebServer instance;
   return instance;
 }
-
-// void WebServer::register_configurable(ConfigurableBase* configurable)
-// {
-//   configurables.push_back(configurable);
-// }
 
 void WebServer::connect_to_wifi()
 {
@@ -126,7 +122,8 @@ void WebServer::start()
   setup_session_endpoints();
 
   // Setup all the GET and POST endpoints for the configurables
-  auto configurables = ConfigurableManager::get_instance().get_configurables();
+  std::vector<ConfigurableBase*> configurables =
+      VariableManager<ConfigurableBase>::get_instance().get_variables();
   for (auto& conf : configurables)
   {
     Serial.print("Registering configurable: ");
@@ -145,16 +142,18 @@ void WebServer::start()
         { conf->handle_post(request, data, len); });
   }
 
-  //   //   Setup all the GET endpoints for the readables
-  //   for (auto& read : global_readables)
-  //   {
-  //     Serial.print("Registering readable: ");
-  //     Serial.println(read->get_endpoint());
-  //     // Set up a GET endpoint for each readable
-  //     server.on(read->get_endpoint().c_str(), HTTP_GET,
-  //               [read](AsyncWebServerRequest* request)
-  //               { read->handle_get(request); });
-  //   }
+  //   Setup all the GET endpoints for the readables
+  std::vector<ReadableBase*> readables =
+      VariableManager<ReadableBase>::get_instance().get_variables();
+  for (auto& read : readables)
+  {
+    Serial.print("Registering readable: ");
+    Serial.println(read->get_endpoint());
+    // Set up a GET endpoint for each readable
+    server.on(read->get_endpoint().c_str(), HTTP_GET,
+              [read](AsyncWebServerRequest* request)
+              { read->handle_get(request); });
+  }
 
   // Finally, start the server
   server.begin();

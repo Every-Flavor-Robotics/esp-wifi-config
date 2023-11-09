@@ -4,22 +4,18 @@
 #include <Arduino_JSON.h>
 #include <ESPAsyncWebServer.h>
 #include <WiFi.h>
+#include <conversion_utils.h>
 
-#include <functional>  // for std::function
+#include <functional>
+#include <memory>
 #include <string>
+#include <vector>
+
+#include "readable_base.h"
+#include "variable_manager.h"
 
 namespace ESPWifiConfig
 {
-
-class ReadableBase
-{
- public:
-  virtual ~ReadableBase() {}
-  virtual void handle_get(AsyncWebServerRequest* request) = 0;
-  virtual String get_endpoint() const = 0;
-};
-
-extern std::vector<ReadableBase*> global_readables;
 
 template <typename T>
 class Readable : public ReadableBase
@@ -39,7 +35,7 @@ class Readable : public ReadableBase
         description(desc)
 
   {
-    global_readables.push_back(this);
+    VariableManager<ReadableBase>::get_instance().register_variable(this);
   }
 
   String get_endpoint() const override { return endpoint; }

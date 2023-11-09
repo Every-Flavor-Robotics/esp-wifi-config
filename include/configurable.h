@@ -6,13 +6,13 @@
 #include <WiFi.h>
 #include <conversion_utils.h>
 
-#include <functional>  // for std::function
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "configurable_base.h"
-#include "configurable_manager.h"
+#include "variable_manager.h"
 
 namespace ESPWifiConfig
 {
@@ -35,7 +35,7 @@ class Configurable : public ConfigurableBase
         endpoint(endpoint_path),
         description(desc)
   {
-    ConfigurableManager::get_instance().register_configurable(this);
+    VariableManager<ConfigurableBase>::get_instance().register_variable(this);
   }
 
   String get_endpoint() const override { return endpoint; }
