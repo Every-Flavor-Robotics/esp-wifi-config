@@ -49,11 +49,20 @@ void WebServer::setup_session_endpoints()
       [this](AsyncWebServerRequest* request, uint8_t* data, size_t len,
              size_t index, size_t total)
       {
+        AsyncResponseStream* response =
+            request->beginResponseStream("application/json");
+        response->addHeader("Access-Control-Allow-Origin", "*");
+        response->addHeader("Access-Control-Allow-Methods",
+                            "GET, POST, OPTIONS");
+        response->addHeader("Access-Control-Allow-Headers",
+                            "Origin, X-Requested-With, Content-Type, Accept");
+
         // Check content type
         if (request->contentType() != "application/json")
         {
-          request->send(400, "text/plain",
-                        "Content-Type must be application/json");
+          response->setCode(400);
+          response->print("Content-Type must be application/json");
+          request->send(response);
           return;
         }
 
@@ -66,7 +75,10 @@ void WebServer::setup_session_endpoints()
         // Check if parsing succeeded
         if (JSON.typeof(json_object) == "undefined")
         {
-          request->send(500, "text/plain", "Failed to parse JSON");
+          response->setCode(500);
+          response->print("Failed to parse JSON");
+          request->send(response);
+
           return;
         }
 
@@ -74,12 +86,16 @@ void WebServer::setup_session_endpoints()
         if (json_object.hasOwnProperty("session_id"))
         {
           this->session_id = (const char*)json_object["session_id"];
-          request->send(200, "text/plain", "Session ID received");
+
+          response->setCode(200);
+          response->print("Session ID set");
+          request->send(response);
         }
         else
         {
-          request->send(400, "text/plain",
-                        "No session_id provided in JSON body");
+          response->setCode(400);
+          response->print("No session_id provided in JSON body");
+          request->send(response);
         }
       });
 
@@ -110,6 +126,24 @@ void WebServer::setup_session_endpoints()
           request->send(400, "text/plain", "No session_id provided");
         }
       });
+
+  server.on("/session", HTTP_OPTIONS,
+            [](AsyncWebServerRequest* request)
+            {
+              AsyncWebServerResponse* response =
+                  request->beginResponse(200, "text/plain", "");
+              response->addHeader("Access-Control-Allow-Origin", "*");
+              response->addHeader("Access-Control-Allow-Methods",
+                                  "GET, POST, PUT, DELETE, OPTIONS");
+              response->addHeader(
+                  "Access-Control-Allow-Headers",
+                  "Origin, X-Requested-With, Content-Type, Accept");
+              response->addHeader(
+                  "Access-Control-Max-Age",
+                  "600");  // How long the results of a preflight request can
+                           // be cached in a preflight result cache
+              request->send(response);
+            });
 }
 
 void WebServer::start()
@@ -140,6 +174,24 @@ void WebServer::start()
         [conf](AsyncWebServerRequest* request, uint8_t* data, size_t len,
                size_t index, size_t total)
         { conf->handle_post(request, data, len); });
+
+    server.on(conf->get_endpoint().c_str(), HTTP_OPTIONS,
+              [](AsyncWebServerRequest* request)
+              {
+                AsyncWebServerResponse* response =
+                    request->beginResponse(200, "text/plain", "");
+                response->addHeader("Access-Control-Allow-Origin", "*");
+                response->addHeader("Access-Control-Allow-Methods",
+                                    "GET, POST, PUT, DELETE, OPTIONS");
+                response->addHeader(
+                    "Access-Control-Allow-Headers",
+                    "Origin, X-Requested-With, Content-Type, Accept");
+                response->addHeader(
+                    "Access-Control-Max-Age",
+                    "600");  // How long the results of a preflight request can
+                             // be cached in a preflight result cache
+                request->send(response);
+              });
   }
 
   //   Setup all the GET endpoints for the readables
@@ -152,7 +204,27 @@ void WebServer::start()
     // Set up a GET endpoint for each readable
     server.on(read->get_endpoint().c_str(), HTTP_GET,
               [read](AsyncWebServerRequest* request)
-              { read->handle_get(request); });
+              {
+                Serial.println("Entered post");
+                read->handle_get(request);
+              });
+    server.on(read->get_endpoint().c_str(), HTTP_OPTIONS,
+              [](AsyncWebServerRequest* request)
+              {
+                AsyncWebServerResponse* response =
+                    request->beginResponse(200, "text/plain", "");
+                response->addHeader("Access-Control-Allow-Origin", "*");
+                response->addHeader("Access-Control-Allow-Methods",
+                                    "GET, POST, PUT, DELETE, OPTIONS");
+                response->addHeader(
+                    "Access-Control-Allow-Headers",
+                    "Origin, X-Requested-With, Content-Type, Accept");
+                response->addHeader(
+                    "Access-Control-Max-Age",
+                    "600");  // How long the results of a preflight request can
+                             // be cached in a preflight result cache
+                request->send(response);
+              });
   }
 
   // Finally, start the server

@@ -49,7 +49,23 @@ class Configurable : public ConfigurableBase
 
   void handle_get(AsyncWebServerRequest* request) override
   {
-    request->send(200, "text/plain", String(*value_ptr));
+    // Serial.println("Handling GET request");
+    // JSON response
+    AsyncResponseStream* response =
+        request->beginResponseStream("application/json");
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    response->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    response->addHeader("Access-Control-Allow-Headers",
+                        "Origin, X-Requested-With, Content-Type, Accept");
+    response->setCode(200);
+    // Construct a JSON object with the value
+    JSONVar json_object;
+    json_object["value"] = *value_ptr;
+    // Serial.println(*value_ptr);
+    response->print(JSON.stringify(json_object));
+
+    request->send(response);
+
     if (get_callback)
     {
       get_callback();
@@ -59,26 +75,36 @@ class Configurable : public ConfigurableBase
   void handle_post(AsyncWebServerRequest* request, uint8_t* data,
                    size_t len) override
   {
-    Serial.println("Handling POST request");
+    // Serial.println("Handling POST request");
     String payload = String((char*)data);
-    Serial.print("Payload: ");
-    Serial.println(payload);
+    // Serial.print("Payload: ");
+    // Serial.println(payload);
     JSONVar json_object = JSON.parse(payload);
     Serial.print("JSON object: ");
     Serial.println(json_object["value"]);
+
+    AsyncResponseStream* response = request->beginResponseStream("text/plain");
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    response->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    response->addHeader("Access-Control-Allow-Headers",
+                        "Origin, X-Requested-With, Content-Type, Accept");
 
     try
     {
       T received_value = JsonConverter<T>::convert(json_object["value"]);
       *value_ptr = received_value;
-      request->send(200, "text/plain", "Success.");
+      response->setCode(200);
+      response->print("Success");
       if (post_callback) post_callback(received_value);
     }
     catch (const std::exception& e)
     {
       // Handle conversion errors here (invalid JSON format or type mismatch)
-      request->send(400, "text/plain", e.what());
+      response->setCode(400);
+      response->print(e.what());
     }
+
+    request->send(response);
   }
 };
 
