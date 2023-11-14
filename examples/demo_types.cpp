@@ -5,6 +5,7 @@
 // Define some global variables
 int int_val = 10;
 float float_val = 20.5f;
+bool bool_val = true;
 String string_val = "Hello, ESP!";
 
 // Create Configurable objects for each variable
@@ -12,6 +13,9 @@ ESPWifiConfig::Configurable<int> int_conf(int_val, "/int_val",
                                           "An integer value");
 ESPWifiConfig::Configurable<float> float_conf(float_val, "/float_val",
                                               "A float value");
+//   Bool
+ESPWifiConfig::Configurable<bool> bool_conf(bool_val, "/bool_val",
+                                            "A boolean value");
 ESPWifiConfig::Readable<int> int_read(
     []()
     {

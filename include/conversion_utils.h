@@ -18,9 +18,22 @@ struct JsonConverter<float>
 {
   static float convert(const JSONVar& obj)
   {
-    if (JSON.typeof(obj["value"]) == "number")
+    if (JSON.typeof(obj) == "number")
     {
       return static_cast<float>((double)obj);
+    }
+    throw std::runtime_error("Invalid JSON format or type for float.");
+  }
+};
+
+template <>
+struct JsonConverter<double>
+{
+  static double convert(const JSONVar& obj)
+  {
+    if (JSON.typeof(obj) == "number")
+    {
+      return static_cast<double>(obj);
     }
     throw std::runtime_error("Invalid JSON format or type for float.");
   }
@@ -51,6 +64,20 @@ struct JsonConverter<int>
       return static_cast<int>(obj);
     }
     throw std::runtime_error("Invalid JSON format or type for int.");
+  }
+};
+
+// Specialization for bool
+template <>
+struct JsonConverter<bool>
+{
+  static bool convert(const JSONVar& obj)
+  {
+    if (JSON.typeof(obj) == "boolean")
+    {
+      return static_cast<bool>(obj);
+    }
+    throw std::runtime_error("Invalid JSON format or type for bool.");
   }
 };
 
