@@ -45,11 +45,29 @@ class Readable : public ReadableBase
     if (get_value_callback)
     {
       T value = get_value_callback();
-      request->send(200, "text/plain", String(value));
+      AsyncResponseStream* response =
+          request->beginResponseStream("text/plain");
+
+      response->addHeader("Access-Control-Allow-Origin", "*");
+      response->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      response->addHeader("Access-Control-Allow-Headers",
+                          "Origin, X-Requested-With, Content-Type, Accept");
+
+      response->setCode(200);
+      request->send(response);
     }
     else
     {
-      request->send(400, "text/plain", "Failed to retrieve value.");
+      AsyncResponseStream* response =
+          request->beginResponseStream("text/plain");
+
+      response->addHeader("Access-Control-Allow-Origin", "*");
+      response->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      response->addHeader("Access-Control-Allow-Headers",
+                          "Origin, X-Requested-With, Content-Type, Accept");
+
+      response->setCode(400);
+      request->send(response);
     }
   }
 };
