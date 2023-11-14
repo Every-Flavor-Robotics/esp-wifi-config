@@ -205,7 +205,7 @@ void WebServer::start()
     server.on(read->get_endpoint().c_str(), HTTP_GET,
               [read](AsyncWebServerRequest* request)
               {
-                Serial.println("Entered post");
+                // Serial.println("Entered post");
                 read->handle_get(request);
               });
     server.on(read->get_endpoint().c_str(), HTTP_OPTIONS,

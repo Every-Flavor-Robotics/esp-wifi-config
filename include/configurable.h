@@ -20,7 +20,7 @@ template <typename T>
 class Configurable : public ConfigurableBase
 {
  private:
-  std::shared_ptr<T> value_ptr;
+  T* value_ptr;
   String endpoint;
   String description;
 
@@ -31,9 +31,7 @@ class Configurable : public ConfigurableBase
 
  public:
   Configurable(T& value, const String& endpoint_path, const String& desc = "")
-      : value_ptr(std::make_shared<T>(value)),  // Construct a shared_ptr
-        endpoint(endpoint_path),
-        description(desc)
+      : value_ptr(&value), endpoint(endpoint_path), description(desc)
   {
     VariableManager<ConfigurableBase>::get_instance().register_variable(this);
   }
@@ -80,8 +78,6 @@ class Configurable : public ConfigurableBase
     // Serial.print("Payload: ");
     // Serial.println(payload);
     JSONVar json_object = JSON.parse(payload);
-    Serial.print("JSON object: ");
-    Serial.println(json_object["value"]);
 
     AsyncResponseStream* response = request->beginResponseStream("text/plain");
     response->addHeader("Access-Control-Allow-Origin", "*");
