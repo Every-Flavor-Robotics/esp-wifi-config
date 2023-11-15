@@ -30,10 +30,41 @@ class Configurable : public ConfigurableBase
   std::function<void(T)> post_callback;
 
  public:
-  Configurable(T& value, const String& endpoint_path, const String& desc = "")
+  Configurable();
+  Configurable(T& value, const String endpoint_path, const String desc = "")
       : value_ptr(&value), endpoint(endpoint_path), description(desc)
   {
     VariableManager<ConfigurableBase>::get_instance().register_variable(this);
+  }
+
+  Configurable(const Configurable& other)
+      : value_ptr(other.value_ptr),  // Shallow copy of the pointer
+        endpoint(other.endpoint),
+        description(other.description),
+        get_callback(other.get_callback),
+        post_callback(other.post_callback)
+  {
+    VariableManager<ConfigurableBase>::get_instance().register_variable(this);
+  }
+
+  ~Configurable()
+  {
+    VariableManager<ConfigurableBase>::get_instance().deregister_variable(this);
+  }
+
+  Configurable& operator=(const Configurable& other)
+  {
+    if (this != &other)
+    {
+      value_ptr = other.value_ptr;
+      endpoint = other.endpoint;
+      description = other.description;
+      get_callback = other.get_callback;
+      post_callback = other.post_callback;
+
+      VariableManager<ConfigurableBase>::get_instance().register_variable(this);
+    }
+    return *this;
   }
 
   String get_endpoint() const override { return endpoint; }
@@ -58,8 +89,10 @@ class Configurable : public ConfigurableBase
     response->setCode(200);
     // Construct a JSON object with the value
     JSONVar json_object;
-    json_object["value"] = *value_ptr;
+    JSONVar value = JsonSerializer<T>::serialize(*value_ptr);
+    json_object["value"] = value;
     // Serial.println(*value_ptr);
+    // JSON object print
     response->print(JSON.stringify(json_object));
 
     request->send(response);
@@ -75,8 +108,7 @@ class Configurable : public ConfigurableBase
   {
     // Serial.println("Handling POST request");
     String payload = String((char*)data);
-    // Serial.print("Payload: ");
-    // Serial.println(payload);
+
     JSONVar json_object = JSON.parse(payload);
 
     AsyncResponseStream* response = request->beginResponseStream("text/plain");
@@ -88,6 +120,7 @@ class Configurable : public ConfigurableBase
     try
     {
       T received_value = JsonConverter<T>::convert(json_object["value"]);
+
       *value_ptr = received_value;
       response->setCode(200);
       response->print("Success");

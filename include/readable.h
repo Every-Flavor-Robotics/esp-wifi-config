@@ -28,14 +28,47 @@ class Readable : public ReadableBase
   String description;
 
  public:
-  Readable(std::function<T()> value_func, const String& endpoint_path,
-           const String& desc)
+  Readable() {}
+  Readable(std::function<T()> value_func, const String endpoint_path,
+           const String desc)
       : get_value_callback(value_func),
         endpoint(endpoint_path),
         description(desc)
 
   {
     VariableManager<ReadableBase>::get_instance().register_variable(this);
+  }
+
+  Readable(const Readable& other)
+      : get_value_callback(other.get_value_callback),
+        endpoint(other.endpoint),
+        description(other.description)
+  {
+    VariableManager<ReadableBase>::get_instance().register_variable(this);
+
+    Serial.println("Readable copy constructor");
+  }
+
+  ~Readable()
+  {
+    Serial.println("Readable destructor");
+    VariableManager<ReadableBase>::get_instance().deregister_variable(this);
+  }
+
+  Readable& operator=(const Readable& other)
+  {
+    if (this != &other)
+    {
+      // Release own resources (if any)
+
+      // Copy resources from 'other'
+      get_value_callback = other.get_value_callback;
+      endpoint = other.endpoint;
+      description = other.description;
+
+      VariableManager<ReadableBase>::get_instance().register_variable(this);
+    }
+    return *this;
   }
 
   String get_endpoint() const override { return endpoint; }
@@ -46,7 +79,7 @@ class Readable : public ReadableBase
     {
       T value = get_value_callback();
       AsyncResponseStream* response =
-          request->beginResponseStream("text/plain");
+          request->beginResponseStream("application/json");
 
       response->addHeader("Access-Control-Allow-Origin", "*");
       response->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -54,6 +87,10 @@ class Readable : public ReadableBase
                           "Origin, X-Requested-With, Content-Type, Accept");
 
       response->setCode(200);
+      //   Add the value to the JSON object
+      JSONVar json_object;
+      json_object["value"] = value;
+      response->print(JSON.stringify(json_object));
       request->send(response);
     }
     else
