@@ -13,7 +13,7 @@ namespace ESPWifiConfig
 std::vector<ConfigurableBase*> global_configurables;
 // std::vector<ReadableBase*> global_readables;
 
-WebServer::WebServer(int port) : server(port) {}
+WebServer::WebServer(int port) : server(port), port(port) {}
 
 WebServer& WebServer::getInstance()
 {
@@ -232,5 +232,9 @@ void WebServer::start()
 }
 
 void WebServer::stop() { server.end(); }
+
+String WebServer::get_ip_address() const { return WiFi.localIP().toString(); }
+
+String WebServer::get_port() const { return String(port); }
 
 }  // namespace ESPWifiConfig

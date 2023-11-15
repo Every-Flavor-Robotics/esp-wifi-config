@@ -18,6 +18,7 @@ class WebServer
  private:
   AsyncWebServer server;
   String session_id;
+  int port;
 
   // Private constructor
   WebServer(int port = 8080);
@@ -36,6 +37,10 @@ class WebServer
 
   void start();
   void stop();
+
+  //   Get IP and port
+  String get_ip_address() const;
+  String get_port() const;
 };
 
 }  // namespace ESPWifiConfig
