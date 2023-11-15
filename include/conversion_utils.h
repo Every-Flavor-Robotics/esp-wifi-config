@@ -12,6 +12,13 @@ struct JsonConverter
 {
 };
 
+// Utility to serialize JSON data from primitive types
+// Default implementation is to just return the object
+template <typename T>
+struct JsonSerializer
+{
+  static JSONVar serialize(const T& obj) { return JSONVar(obj); }
+};
 // Specialization for float
 template <>
 struct JsonConverter<float>
@@ -45,7 +52,8 @@ struct JsonConverter<double>
 // {
 //   static std::string convert(const JSONVar& obj)
 //   {
-//     if (obj.hasOwnProperty("value") && JSON.typeof(obj["value"]) == "string")
+//     if (obj.hasOwnProperty("value") && JSON.typeof(obj["value"]) ==
+//     "string")
 //     {
 //       return static_cast<const char*>(obj["value"]);
 //     }
