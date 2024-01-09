@@ -21,11 +21,11 @@ WebServer& WebServer::getInstance()
   return instance;
 }
 
-void WebServer::connect_to_wifi()
+void WebServer::connect_to_wifi(String wifi_ssid, String wifi_password)
 {
   // Connect to Wi-Fi
   Serial.println("Connecting to Wi-Fi...");
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  WiFi.begin(wifi_ssid, wifi_password);
 
   while (WiFi.status() != WL_CONNECTED)
   {
@@ -146,12 +146,12 @@ void WebServer::setup_session_endpoints()
             });
 }
 
-void WebServer::start()
+void WebServer::start(String wifi_ssid, String wifi_password)
 {
   // Setup GPIO pin for Green LED
   pinMode(8, OUTPUT);
 
-  connect_to_wifi();
+  connect_to_wifi(wifi_ssid, wifi_password);
 
   setup_session_endpoints();
 

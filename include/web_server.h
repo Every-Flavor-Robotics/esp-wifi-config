@@ -23,7 +23,7 @@ class WebServer
   // Private constructor
   WebServer(int port = 8080);
 
-  void connect_to_wifi();
+  void connect_to_wifi(String wifi_ssid, String wifi_password);
   void setup_session_endpoints();
 
  public:
@@ -35,7 +35,7 @@ class WebServer
 
   //   void register_configurable(ConfigurableBase* configurable);
 
-  void start();
+  void start(String wifi_ssid, String wifi_password);
   void stop();
 
   //   Get IP and port
