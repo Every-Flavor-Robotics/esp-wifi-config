@@ -2,6 +2,10 @@
 #include "readable.h"
 #include "web_server.h"
 
+// FILL THESE IN
+String wifi_ssid = "";
+String wifi_password = "";
+
 // Define some global variables
 int int_val = 10;
 float float_val = 20.5f;
@@ -64,7 +68,7 @@ void setup()
   //       });
 
   // Start the web server
-  ESPWifiConfig::WebServer::getInstance().start();
+  ESPWifiConfig::WebServer::getInstance().start(wifi_ssid, wifi_password);
 }
 
 void loop()
