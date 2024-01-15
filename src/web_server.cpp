@@ -112,9 +112,12 @@ void WebServer::setup_session_endpoints()
           {
             request->send(200, "application/json", "{\"status\": \"success\"}");
             // Blink GPIO 8
-            digitalWrite(8, HIGH);
-            delayMicroseconds(100);
-            digitalWrite(8, LOW);
+            if (use_indicator)
+            {
+              digitalWrite(indicator_pin, HIGH);
+              delayMicroseconds(100);
+              digitalWrite(indicator_pin, LOW);
+            }
           }
           else
           {
@@ -146,12 +149,20 @@ void WebServer::setup_session_endpoints()
             });
 }
 
-void WebServer::start(String wifi_ssid, String wifi_password)
+void WebServer::start(String wifi_ssid, String wifi_password, int indicator_pin)
 {
   // Setup GPIO pin for Green LED
   pinMode(8, OUTPUT);
 
   connect_to_wifi(wifi_ssid, wifi_password);
+
+  // Set up indicator pin
+  if (indicator_pin < 0)
+  {
+    this->indicator_pin = indicator_pin;
+    pinMode(indicator_pin, OUTPUT);
+    use_indicator = true;
+  }
 
   setup_session_endpoints();
 
@@ -188,8 +199,8 @@ void WebServer::start(String wifi_ssid, String wifi_password)
                     "Origin, X-Requested-With, Content-Type, Accept");
                 response->addHeader(
                     "Access-Control-Max-Age",
-                    "600");  // How long the results of a preflight request can
-                             // be cached in a preflight result cache
+                    "600");  // How long the results of a preflight request
+                             // can be cached in a preflight result cache
                 request->send(response);
               });
   }
@@ -221,14 +232,19 @@ void WebServer::start(String wifi_ssid, String wifi_password)
                     "Origin, X-Requested-With, Content-Type, Accept");
                 response->addHeader(
                     "Access-Control-Max-Age",
-                    "600");  // How long the results of a preflight request can
-                             // be cached in a preflight result cache
+                    "600");  // How long the results of a preflight request
+                             // can be cached in a preflight result cache
                 request->send(response);
               });
   }
 
   // Finally, start the server
   server.begin();
+}
+
+void WebServer::start(String wifi_ssid, String wifi_password)
+{
+  start(wifi_ssid, wifi_password, -1);
 }
 
 void WebServer::stop() { server.end(); }
