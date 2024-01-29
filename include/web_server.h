@@ -18,11 +18,15 @@ class WebServer
  private:
   AsyncWebServer server;
   String session_id;
+  int port;
+  int indicator_pin = -1;
+  bool use_indicator = false;
 
   // Private constructor
   WebServer(int port = 8080);
 
-  void connect_to_wifi();
+  void connect_to_wifi(String wifi_ssid, String wifi_password);
+
   void setup_session_endpoints();
 
  public:
@@ -34,8 +38,13 @@ class WebServer
 
   //   void register_configurable(ConfigurableBase* configurable);
 
-  void start();
+  void start(String wifi_ssid, String wifi_password);
+  void start(String wifi_ssid, String wifi_password, int indicator_pin);
   void stop();
+
+  //   Get IP and port
+  String get_ip_address() const;
+  String get_port() const;
 };
 
 }  // namespace ESPWifiConfig

@@ -4,22 +4,18 @@
 #include <Arduino_JSON.h>
 #include <ESPAsyncWebServer.h>
 #include <WiFi.h>
+#include <conversion_utils.h>
 
-#include <functional>  // for std::function
+#include <functional>
+#include <memory>
 #include <string>
+#include <vector>
+
+#include "readable_base.h"
+#include "variable_manager.h"
 
 namespace ESPWifiConfig
 {
-
-class ReadableBase
-{
- public:
-  virtual ~ReadableBase() {}
-  virtual void handle_get(AsyncWebServerRequest* request) = 0;
-  virtual String get_endpoint() const = 0;
-};
-
-extern std::vector<ReadableBase*> global_readables;
 
 template <typename T>
 class Readable : public ReadableBase
@@ -32,14 +28,47 @@ class Readable : public ReadableBase
   String description;
 
  public:
-  Readable(std::function<T()> value_func, const String& endpoint_path,
-           const String& desc)
+  Readable() {}
+  Readable(std::function<T()> value_func, const String endpoint_path,
+           const String desc)
       : get_value_callback(value_func),
         endpoint(endpoint_path),
         description(desc)
 
   {
-    global_readables.push_back(this);
+    VariableManager<ReadableBase>::get_instance().register_variable(this);
+  }
+
+  Readable(const Readable& other)
+      : get_value_callback(other.get_value_callback),
+        endpoint(other.endpoint),
+        description(other.description)
+  {
+    VariableManager<ReadableBase>::get_instance().register_variable(this);
+
+    Serial.println("Readable copy constructor");
+  }
+
+  ~Readable()
+  {
+    Serial.println("Readable destructor");
+    VariableManager<ReadableBase>::get_instance().deregister_variable(this);
+  }
+
+  Readable& operator=(const Readable& other)
+  {
+    if (this != &other)
+    {
+      // Release own resources (if any)
+
+      // Copy resources from 'other'
+      get_value_callback = other.get_value_callback;
+      endpoint = other.endpoint;
+      description = other.description;
+
+      VariableManager<ReadableBase>::get_instance().register_variable(this);
+    }
+    return *this;
   }
 
   String get_endpoint() const override { return endpoint; }
@@ -49,11 +78,33 @@ class Readable : public ReadableBase
     if (get_value_callback)
     {
       T value = get_value_callback();
-      request->send(200, "text/plain", String(value));
+      AsyncResponseStream* response =
+          request->beginResponseStream("application/json");
+
+      response->addHeader("Access-Control-Allow-Origin", "*");
+      response->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      response->addHeader("Access-Control-Allow-Headers",
+                          "Origin, X-Requested-With, Content-Type, Accept");
+
+      response->setCode(200);
+      //   Add the value to the JSON object
+      JSONVar json_object;
+      json_object["value"] = value;
+      response->print(JSON.stringify(json_object));
+      request->send(response);
     }
     else
     {
-      request->send(400, "text/plain", "Failed to retrieve value.");
+      AsyncResponseStream* response =
+          request->beginResponseStream("text/plain");
+
+      response->addHeader("Access-Control-Allow-Origin", "*");
+      response->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      response->addHeader("Access-Control-Allow-Headers",
+                          "Origin, X-Requested-With, Content-Type, Accept");
+
+      response->setCode(400);
+      request->send(response);
     }
   }
 };

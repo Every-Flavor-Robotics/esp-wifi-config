@@ -1,16 +1,19 @@
 
 #include "web_server.h"
 
-#include "configurable.h"
-#include "readable.h"
+#include "configurable_base.h"
+#include "readable_base.h"
+#include "variable_manager.h"
+
+// #include "readable.h"
 
 namespace ESPWifiConfig
 {
 
 std::vector<ConfigurableBase*> global_configurables;
-std::vector<ReadableBase*> global_readables;
+// std::vector<ReadableBase*> global_readables;
 
-WebServer::WebServer(int port) : server(port) {}
+WebServer::WebServer(int port) : server(port), port(port) {}
 
 WebServer& WebServer::getInstance()
 {
@@ -18,16 +21,11 @@ WebServer& WebServer::getInstance()
   return instance;
 }
 
-// void WebServer::register_configurable(ConfigurableBase* configurable)
-// {
-//   configurables.push_back(configurable);
-// }
-
-void WebServer::connect_to_wifi()
+void WebServer::connect_to_wifi(String wifi_ssid, String wifi_password)
 {
   // Connect to Wi-Fi
   Serial.println("Connecting to Wi-Fi...");
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  WiFi.begin(wifi_ssid, wifi_password);
 
   while (WiFi.status() != WL_CONNECTED)
   {
@@ -51,11 +49,20 @@ void WebServer::setup_session_endpoints()
       [this](AsyncWebServerRequest* request, uint8_t* data, size_t len,
              size_t index, size_t total)
       {
+        AsyncResponseStream* response =
+            request->beginResponseStream("application/json");
+        response->addHeader("Access-Control-Allow-Origin", "*");
+        response->addHeader("Access-Control-Allow-Methods",
+                            "GET, POST, OPTIONS");
+        response->addHeader("Access-Control-Allow-Headers",
+                            "Origin, X-Requested-With, Content-Type, Accept");
+
         // Check content type
         if (request->contentType() != "application/json")
         {
-          request->send(400, "text/plain",
-                        "Content-Type must be application/json");
+          response->setCode(400);
+          response->print("Content-Type must be application/json");
+          request->send(response);
           return;
         }
 
@@ -68,7 +75,10 @@ void WebServer::setup_session_endpoints()
         // Check if parsing succeeded
         if (JSON.typeof(json_object) == "undefined")
         {
-          request->send(500, "text/plain", "Failed to parse JSON");
+          response->setCode(500);
+          response->print("Failed to parse JSON");
+          request->send(response);
+
           return;
         }
 
@@ -76,12 +86,16 @@ void WebServer::setup_session_endpoints()
         if (json_object.hasOwnProperty("session_id"))
         {
           this->session_id = (const char*)json_object["session_id"];
-          request->send(200, "text/plain", "Session ID received");
+
+          response->setCode(200);
+          response->print("Session ID set");
+          request->send(response);
         }
         else
         {
-          request->send(400, "text/plain",
-                        "No session_id provided in JSON body");
+          response->setCode(400);
+          response->print("No session_id provided in JSON body");
+          request->send(response);
         }
       });
 
@@ -98,9 +112,12 @@ void WebServer::setup_session_endpoints()
           {
             request->send(200, "application/json", "{\"status\": \"success\"}");
             // Blink GPIO 8
-            digitalWrite(8, HIGH);
-            delayMicroseconds(100);
-            digitalWrite(8, LOW);
+            if (use_indicator)
+            {
+              digitalWrite(indicator_pin, HIGH);
+              delayMicroseconds(100);
+              digitalWrite(indicator_pin, LOW);
+            }
           }
           else
           {
@@ -112,19 +129,44 @@ void WebServer::setup_session_endpoints()
           request->send(400, "text/plain", "No session_id provided");
         }
       });
+
+  server.on("/session", HTTP_OPTIONS,
+            [](AsyncWebServerRequest* request)
+            {
+              AsyncWebServerResponse* response =
+                  request->beginResponse(200, "text/plain", "");
+              response->addHeader("Access-Control-Allow-Origin", "*");
+              response->addHeader("Access-Control-Allow-Methods",
+                                  "GET, POST, PUT, DELETE, OPTIONS");
+              response->addHeader(
+                  "Access-Control-Allow-Headers",
+                  "Origin, X-Requested-With, Content-Type, Accept");
+              response->addHeader(
+                  "Access-Control-Max-Age",
+                  "600");  // How long the results of a preflight request can
+                           // be cached in a preflight result cache
+              request->send(response);
+            });
 }
 
-void WebServer::start()
+void WebServer::start(String wifi_ssid, String wifi_password, int indicator_pin)
 {
-  // Setup GPIO pin for Green LED
-  pinMode(8, OUTPUT);
+  connect_to_wifi(wifi_ssid, wifi_password);
 
-  connect_to_wifi();
+  // Set up indicator pin
+  if (indicator_pin < 0)
+  {
+    this->indicator_pin = indicator_pin;
+    pinMode(indicator_pin, OUTPUT);
+    use_indicator = true;
+  }
 
   setup_session_endpoints();
 
   // Setup all the GET and POST endpoints for the configurables
-  for (auto& conf : global_configurables)
+  std::vector<ConfigurableBase*> configurables =
+      VariableManager<ConfigurableBase>::get_instance().get_variables();
+  for (auto& conf : configurables)
   {
     Serial.print("Registering configurable: ");
     Serial.println(conf->get_endpoint());
@@ -140,23 +182,72 @@ void WebServer::start()
         [conf](AsyncWebServerRequest* request, uint8_t* data, size_t len,
                size_t index, size_t total)
         { conf->handle_post(request, data, len); });
+
+    server.on(conf->get_endpoint().c_str(), HTTP_OPTIONS,
+              [](AsyncWebServerRequest* request)
+              {
+                AsyncWebServerResponse* response =
+                    request->beginResponse(200, "text/plain", "");
+                response->addHeader("Access-Control-Allow-Origin", "*");
+                response->addHeader("Access-Control-Allow-Methods",
+                                    "GET, POST, PUT, DELETE, OPTIONS");
+                response->addHeader(
+                    "Access-Control-Allow-Headers",
+                    "Origin, X-Requested-With, Content-Type, Accept");
+                response->addHeader(
+                    "Access-Control-Max-Age",
+                    "600");  // How long the results of a preflight request
+                             // can be cached in a preflight result cache
+                request->send(response);
+              });
   }
 
   //   Setup all the GET endpoints for the readables
-  for (auto& read : global_readables)
+  std::vector<ReadableBase*> readables =
+      VariableManager<ReadableBase>::get_instance().get_variables();
+  for (auto& read : readables)
   {
     Serial.print("Registering readable: ");
     Serial.println(read->get_endpoint());
     // Set up a GET endpoint for each readable
     server.on(read->get_endpoint().c_str(), HTTP_GET,
               [read](AsyncWebServerRequest* request)
-              { read->handle_get(request); });
+              {
+                // Serial.println("Entered post");
+                read->handle_get(request);
+              });
+    server.on(read->get_endpoint().c_str(), HTTP_OPTIONS,
+              [](AsyncWebServerRequest* request)
+              {
+                AsyncWebServerResponse* response =
+                    request->beginResponse(200, "text/plain", "");
+                response->addHeader("Access-Control-Allow-Origin", "*");
+                response->addHeader("Access-Control-Allow-Methods",
+                                    "GET, POST, PUT, DELETE, OPTIONS");
+                response->addHeader(
+                    "Access-Control-Allow-Headers",
+                    "Origin, X-Requested-With, Content-Type, Accept");
+                response->addHeader(
+                    "Access-Control-Max-Age",
+                    "600");  // How long the results of a preflight request
+                             // can be cached in a preflight result cache
+                request->send(response);
+              });
   }
 
   // Finally, start the server
   server.begin();
 }
 
+void WebServer::start(String wifi_ssid, String wifi_password)
+{
+  start(wifi_ssid, wifi_password, -1);
+}
+
 void WebServer::stop() { server.end(); }
+
+String WebServer::get_ip_address() const { return WiFi.localIP().toString(); }
+
+String WebServer::get_port() const { return String(port); }
 
 }  // namespace ESPWifiConfig
