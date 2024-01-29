@@ -151,9 +151,6 @@ void WebServer::setup_session_endpoints()
 
 void WebServer::start(String wifi_ssid, String wifi_password, int indicator_pin)
 {
-  // Setup GPIO pin for Green LED
-  pinMode(8, OUTPUT);
-
   connect_to_wifi(wifi_ssid, wifi_password);
 
   // Set up indicator pin
